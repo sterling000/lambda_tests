@@ -1,0 +1,41 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "UserModel",
+
+    "definitions": {
+        "deck": {
+            "type": "object",
+            "properties": {
+                "id": { "type": "number" },
+                "name": { "type": "string" },
+                "updatedAt": { "type": "string"},
+                "private": { "type": "boolean"},
+                "colors": { 
+                    "type": "object",
+                    "properties": {
+                        "W": {"type": "number"},
+                        "U": {"type": "number"},
+                        "B": {"type": "number"},
+                        "R": {"type": "number"},
+                        "G": {"type": "number"}
+                    }
+                }
+            }
+        }
+    },
+
+    "type": "object",
+    "required": [
+        "decks",
+        "id",
+        "expiresAt"
+    ],
+    "properties": {
+        "id": { "type": "string" },
+        "decks": { 
+            "type": "array",
+            "items": { "$ref": "#/definitions/deck" } 
+        },
+        "expiresAt": { "type": "number" }
+    }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "deckmasterweb",
+  "version": "1.0.0",
+  "description": "A web app for managing my staples binder.",
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sterling000/deckmasterweb.git"
+  },
+  "author": "Brian Sterling",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/sterling000/deckmasterweb/issues"
+  },
+  "homepage": "https://github.com/sterling000/deckmasterweb#readme",
+  "devDependencies": {
+    "fetch-mock": "^9.10.3",
+    "jest": "^26.1.0",
+    "serverless": "^1.74.1"
+  },
+  "dependencies": {}
+}
