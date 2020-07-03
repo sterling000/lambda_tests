@@ -12,16 +12,23 @@ const getMissingMockUser = () => {
 
 jest.mock('node-fetch', () => {
     const stubs = require('./stubs')
-    const generateResponse = () => {
+    const generateResolvedResponse = () => {
         return {
             status: 200,
             json: () => ({results: stubs.userData.Item.decks})
         };
     };
 
+    const generateRejectedResponse = () => {
+        return {
+            status: 401
+        };
+    };
+
     return jest
         .fn()
-        .mockResolvedValue(generateResponse());
+        .mockResolvedValueOnce(generateResolvedResponse())
+        .mockRejectedValueOnce(generateRejectedResponse);
 });
 
 // target code for tests
@@ -58,6 +65,23 @@ describe('handler', () => {
         expect(response.statusCode).toEqual(200);
     });
 
+    test('the db\'s get should throw an error', async () => {
+        jest.resetModules();
+        jest.doMock('aws-sdk', () => {
+            return {
+                ...jest.requireActual("aws-sdk"),
+                DynamoDB: {
+                    DocumentClient: jest.fn(() => ({get: () => ({promise: jest.fn().mockRejectedValueOnce(() => {return Promise.reject({})})})}))
+                }
+            }
+        });
+
+        
+
+        const response = await handler({pathParameters:{id:'Wildcard'}}, {});
+        expect(response.statusCode).toEqual(400);
+    });
+
     test('the response body should match the snapshot', async () => {
         jest.resetModules();
         jest.doMock('aws-sdk', () => {
@@ -74,7 +98,7 @@ describe('handler', () => {
         expect(body.decks).toMatchSnapshot();
     });
 
-    test('the db was missing the user', async () => {
+    test('the db was missing the user, fetch should succeed', async () => {
         jest.resetModules();
         jest.doMock('aws-sdk', () => {
             return {
@@ -95,6 +119,25 @@ describe('handler', () => {
         expect(body.decks).toMatchSnapshot();
     });
 
+    test('the db was missing the user and threw an error when we tried to write a new one to it.', async () => {
+        jest.resetModules();
+        jest.doMock('aws-sdk', () => {
+            return {
+                ...jest.requireActual('aws-sdk'),
+                DynamoDB: {
+                    DocumentClient: jest.fn(() => ({
+                        get: () => ({promise: getMissingMockUser}),
+                        put: () => ({promise: jest.fn().mockImplementation(() => {return Promise.reject({})})
+                    }),  
+                }))
+                }
+            }            
+        });
+        
+        const response = await handler({pathParameters:{id:'Wildcard'}}, {});
+        expect(response.statusCode).toEqual(401);
+    });
+
     test('the db was missing the user and archidekt failed', async () => {
         jest.resetModules();
         jest.doMock('aws-sdk', () => {
@@ -111,12 +154,30 @@ describe('handler', () => {
         jest.doMock('node-fetch', ()=> {
             return {
                 ...jest.requireActual('node-fetch'),
-                fetch: () => ({promise: getMissingMockUser})
+                fetch: () => ({promise: (() => {return Promise.reject({})})})
             }
         });
         const response = await handler({pathParameters:{id:'Wildcard'}}, {});
-        expect(response.statusCode).toEqual(202);
-        const body = JSON.parse(response.body);
-        expect(body.decks).toMatchSnapshot();
+        expect(response.statusCode).toEqual(401);
     });
+
+    // test('the db was missing the user and our fetch promise failed', async () => {
+    //     jest.resetModules();
+    //     jest.doMock('aws-sdk', () => {
+    //         return {
+    //             ...jest.requireActual('aws-sdk'),
+    //             DynamoDB: {
+    //                 DocumentClient: jest.fn(() => ({
+    //                     get: () => ({promise: getMissingMockUser}),
+    //                     put: () => ({promise: jest.fn()})
+    //                 })),  
+    //             }
+    //         }
+    //     });
+        
+    //     handler.fetchDecks = jest.fn().mockRejectedValueOnce(new Error('mocked error'));
+
+    //     const response = await handler({pathParameters:{id:'Wildcard'}}, {});
+    //     expect(response.statusCode).toEqual(402); 
+    // });
 });
